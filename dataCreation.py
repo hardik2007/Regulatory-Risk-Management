@@ -43,7 +43,7 @@ tickers = [
 OUTPUT_FILE = "Financial_Dataset.csv"
 allData = []
 
-print(f"🚀 Starting Mass Download for {len(tickers)} companies...")
+print(f"Starting Mass Download for {len(tickers)} companies...")
 print("-------------------------------------------------------")
 
 for i, ticker in enumerate(tickers):
@@ -73,7 +73,7 @@ if allData:
     df = pd.concat(allData, ignore_index=True)
     df.to_csv(OUTPUT_FILE, index = False)
     print("-------------------------------------------------------")
-    print(f"🎉 SUCCESS! Downloaded {len(df)} rows of data.")
-    print(f"📁 Saved to: {OUTPUT_FILE}")
+    print(f"SUCCESS! Downloaded {len(df)} rows of data.")
+    print(f"Saved to: {OUTPUT_FILE}")
 else:
     print("❌ Failed. No data downloaded.")
