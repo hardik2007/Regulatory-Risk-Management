@@ -76,4 +76,4 @@ if allData:
     print(f"SUCCESS! Downloaded {len(df)} rows of data.")
     print(f"Saved to: {OUTPUT_FILE}")
 else:
-    print("❌ Failed. No data downloaded.")
+    print("Failed. No data downloaded.")
