@@ -1,60 +1,79 @@
 import pandas as pd
+import yfinance as yf
+import time
 
-risky_data = [
-    {"Company": "Vodafone Idea",       "Ticker": "IDEA.NS",          "Sector": "Telecom",    "Risk_Label": 1},
-    {"Company": "Yes Bank",            "Ticker": "YESBANK.NS",       "Sector": "Banking",    "Risk_Label": 1},
-    {"Company": "Punjab National Bank","Ticker": "PNB.NS",           "Sector": "Banking",    "Risk_Label": 1},
-    {"Company": "Indiabulls Housing",  "Ticker": "INDIABULLSHSG.NS", "Sector": "Finance",    "Risk_Label": 1},
-    {"Company": "SpiceJet",            "Ticker": "SPICEJET.NS",      "Sector": "Aviation",   "Risk_Label": 1},
-    {"Company": "PC Jeweller",         "Ticker": "PCJEWELLER.NS",    "Sector": "Consumer",   "Risk_Label": 1},
-    {"Company": "Suzlon Energy",       "Ticker": "SUZLON.NS",        "Sector": "Energy",     "Risk_Label": 1},
-    {"Company": "Vedanta",             "Ticker": "VEDL.NS",          "Sector": "Mining",     "Risk_Label": 1},
-    {"Company": "Sun TV Network",      "Ticker": "SUNTV.NS",         "Sector": "Media",      "Risk_Label": 1},
-    {"Company": "DLF",                 "Ticker": "DLF.NS",           "Sector": "Realty",     "Risk_Label": 1}
+tickers = [
+    # BANKS & FINANCE (Crucial for risk modeling)
+    "HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "AXISBANK.NS", "KOTAKBANK.NS",
+    "INDUSINDBK.NS", "BANKBARODA.NS", "PNB.NS", "IDFcashFlowIRSTB.NS", "RBLBANK.NS",
+    "BANDHANBNK.NS", "FEDERALBNK.NS", "AUBANK.NS", "YESBANK.NS", "UJJIVANSFB.NS",
+    "CHOLAFIN.NS", "BAJFINANCE.NS", "MUTHOOTFIN.NS", "MANAPPURAM.NS", "L&TFH.NS",
+
+    # IT & TECH
+    "TCS.NS", "INFY.NS", "HCLTECH.NS", "WIPRO.NS", "TECHM.NS", "LTIM.NS",
+    "PERSISTENT.NS", "COFORGE.NS", "KPITTECH.NS", "TATAELXSI.NS", "HAPPSTMNDS.NS",
+    "ZENSARTECH.NS", "CYIENT.NS", "MASTEK.NS", "balanceSheetOFT.NS",
+
+    # PHARMA & HEALTH
+    "SUNPHARMA.NS", "DRREDDY.NS", "CIPLA.NS", "DIVISLAB.NS", "BIOCON.NS",
+    "AUROPHARMA.NS", "LUPIN.NS", "GLENMARK.NS", "GRANULES.NS", "LAURUSLAbalanceSheet.NS",
+    "APOLLOHOSP.NS", "METROPOLIS.NS", "LALPATHLAB.NS",
+
+    # AUTO & ANCILLARY
+    "MARUTI.NS", "TATAMOTORS.NS", "M&M.NS", "BAJAJ-AUTO.NS", "EICHERMOT.NS",
+    "HEROMOTOCO.NS", "TVSMOTOR.NS", "ASHOKLEY.NS", "MOTHERSON.NS", "BOSCHLTD.NS",
+    "MRF.NS", "APOLLOTYRE.NS", "EXIDEIND.NS",
+
+    # METALS, MINING & ENERGY
+    "TATASTEEL.NS", "JSL.NS", "HINDALCO.NS", "VEDL.NS", "JSWSTEEL.NS",
+    "SAIL.NS", "NMDC.NS", "COALINDIA.NS", "HINDZincome.NS", "NATIONALUM.NS",
+    "ONGC.NS", "OIL.NS", "IOC.NS", "BPCL.NS", "GAIL.NS",
+
+    # INFRA, POWER & REALTY (High Debt Sectors)
+    "LT.NS", "ADANIENT.NS", "ADANIPORTS.NS", "ADANIGREEN.NS", "ADANIPOWER.NS",
+    "TATAPOWER.NS", "NTPC.NS", "POWERGRID.NS", "GMRINFRA.NS", "IRB.NS",
+    "SUZLON.NS", "JPPOWER.NS", "RTNPOWER.NS", "RPOWER.NS", "RELIANCE.NS",
+    "DLF.NS", "LODHA.NS", "GODREJPROP.NS", "OBEROIRLTY.NS", "PRESTIGE.NS",
+
+    # CONSUMER, TELECOM & MEDIA
+    "HINDUNILVR.NS", "ITC.NS", "TITAN.NS", "ASIANPAINT.NS", "PIDILITIND.NS",
+    "BHARTIARTL.NS", "IDEA.NS", "SUNTV.NS", "ZEEL.NS", "PVRINOX.NS",
+    "NAUKRI.NS", "ZOMATO.NS", "PAYTM.NS", "NYKAA.NS", "POLICYBZR.NS"
 ]
+OUTPUT_FILE = "Financial_Dataset.csv"
+allData = []
 
-safe_data = [
-    {"Company": "TCS",                 "Ticker": "TCS.NS",           "Sector": "IT",         "Risk_Label": 0},
-    {"Company": "Infosys",             "Ticker": "INFY.NS",          "Sector": "IT",         "Risk_Label": 0},
-    {"Company": "HDFC Bank",           "Ticker": "HDFCBANK.NS",      "Sector": "Banking",    "Risk_Label": 0},
-    {"Company": "ICICI Bank",          "Ticker": "ICICIBANK.NS",     "Sector": "Banking",    "Risk_Label": 0},
-    {"Company": "Hindustan Unilever",  "Ticker": "HINDUNILVR.NS",    "Sector": "FMCG",       "Risk_Label": 0},
-    {"Company": "ITC",                 "Ticker": "ITC.NS",           "Sector": "FMCG",       "Risk_Label": 0},
-    {"Company": "Reliance Industries", "Ticker": "RELIANCE.NS",      "Sector": "Energy",     "Risk_Label": 0},
-    {"Company": "NTPC",                "Ticker": "NTPC.NS",          "Sector": "Energy",     "Risk_Label": 0},
-    {"Company": "Larsen & Toubro",     "Ticker": "LT.NS",            "Sector": "Infra",      "Risk_Label": 0},
-    {"Company": "Sun Pharma",          "Ticker": "SUNPHARMA.NS",     "Sector": "Pharma",     "Risk_Label": 0},
-    {"Company": "Maruti Suzuki",       "Ticker": "MARUTI.NS",        "Sector": "Auto",       "Risk_Label": 0},
-    {"Company": "Titan",               "Ticker": "TITAN.NS",         "Sector": "Consumer",   "Risk_Label": 0},
-    {"Company": "Bharti Airtel",       "Ticker": "BHARTIARTL.NS",    "Sector": "Telecom",    "Risk_Label": 0},
-    {"Company": "Asian Paints",        "Ticker": "ASIANPAINT.NS",    "Sector": "Consumer",   "Risk_Label": 0},
-    {"Company": "Bajaj Finance",       "Ticker": "BAJFINANCE.NS",    "Sector": "Finance",    "Risk_Label": 0},
-    {"Company": "UltraTech Cement",    "Ticker": "ULTRACEMCO.NS",    "Sector": "Infra",      "Risk_Label": 0},
-    {"Company": "Nestle India",        "Ticker": "NESTLEIND.NS",     "Sector": "FMCG",       "Risk_Label": 0},
-    {"Company": "HCL Tech",            "Ticker": "HCLTECH.NS",       "Sector": "IT",         "Risk_Label": 0},
-    {"Company": "Cipla",               "Ticker": "CIPLA.NS",         "Sector": "Pharma",     "Risk_Label": 0},
-    {"Company": "Kotak Mahindra",      "Ticker": "KOTAKBANK.NS",     "Sector": "Banking",    "Risk_Label": 0}
-]
+print(f"🚀 Starting Mass Download for {len(tickers)} companies...")
+print("-------------------------------------------------------")
 
-neutral_data = [
-    {"Company": "Ashok Leyland",       "Ticker": "ASHOKLEY.NS",      "Sector": "Auto",       "Risk_Label": 0},
-    {"Company": "TVS Motor",           "Ticker": "TVSMOTOR.NS",      "Sector": "Auto",       "Risk_Label": 0},
-    {"Company": "Voltas",              "Ticker": "VOLTAS.NS",        "Sector": "Durables",   "Risk_Label": 0},
-    {"Company": "Marico",              "Ticker": "MARICO.NS",        "Sector": "FMCG",       "Risk_Label": 0},
-    {"Company": "SRF",                 "Ticker": "SRF.NS",           "Sector": "Chemicals",  "Risk_Label": 0},
-    {"Company": "Apollo Tyres",        "Ticker": "APOLLOTYRE.NS",    "Sector": "Auto Anc",   "Risk_Label": 0},
-    {"Company": "IRB Infra",           "Ticker": "IRB.NS",           "Sector": "Infra",      "Risk_Label": 0},
-    {"Company": "IDFC First Bank",     "Ticker": "IDFCFIRSTB.NS",    "Sector": "Banking",    "Risk_Label": 0},
-    {"Company": "L&T Finance",         "Ticker": "L&TFH.NS",         "Sector": "Finance",    "Risk_Label": 0},
-    {"Company": "Persistent Systems",  "Ticker": "PERSISTENT.NS",    "Sector": "IT",         "Risk_Label": 0}
-]
+for i, ticker in enumerate(tickers):
+    print(f"[{i+1}/{len(tickers)}] Fetching {ticker}...", end=" ")
 
-fullData = risky_data + safe_data + neutral_data
-df = pd.DataFrame(fullData)
+    try:
+        stock = yf.Ticker(ticker)
+        balanceSheet = stock.balance_sheet.T
+        income = stock.financials.T
+        cashFlow = stock.cashflow.T
 
-fileName = "Project_scope_final.xlsx"
-df.to_excel(fileName, index = False)
+        if balanceSheet.empty or income.empty:
+            print("No Data (Skipping Company)")
+            continue
 
-print(f"Total Companies: {len(df)}")
-print(f"Risky: {len(df[df['Risk_Label']==1])}")
-print(f"Safe/Neutral: {len(df[df['Risk_Label']==0])}")
+        combined = balanceSheet.join(income, lsuffix='_balanceSheet', rsuffix='_income').join(cashFlow, lsuffix='_income', rsuffix='_cashFlow')
+        combined.reset_index(inplace=True)
+        combined.rename(columns={'index': 'Date'}, inplace =True)
+        combined['Ticker'] = ticker
+        allData.append(combined)
+        print("Done")
+        time.sleep(1)
+    except Exception as e:
+        print(f"Error: {e}")
+
+if allData:
+    df = pd.concat(allData, ignore_index=True)
+    df.to_csv(OUTPUT_FILE, index = False)
+    print("-------------------------------------------------------")
+    print(f"🎉 SUCCESS! Downloaded {len(df)} rows of data.")
+    print(f"📁 Saved to: {OUTPUT_FILE}")
+else:
+    print("❌ Failed. No data downloaded.")
